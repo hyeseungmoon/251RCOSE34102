@@ -3,7 +3,7 @@ project(COSE341 C)
 
 set(CMAKE_C_STANDARD 11)
 
-include_directories(include include/DataStructure)
+include_directories(include include/DataStructure include/Scheduler include/Component)
 
 add_subdirectory(src/DataStructure)
 add_subdirectory(src)
