@@ -9,14 +9,25 @@
 #include <queue_interface.h>
 #include <Component/cpu.h>
 
+
+typedef struct ChartObject{
+    int pid;
+    int start_time;
+    int end_time;
+}ChartObject;
+
 typedef struct IScheduler {
     IQueue* ready_queue;
     IQueue* waiting_queue;
+    IQueue* chart_queue;
     Cpu* core;
     ProcessControlBlock* current_pcb;
-    int time_slice;
+    int time_quantum;
+    int total_waiting_time;
+    int total_turnaround_time;
+    int total_prcess_count;
 
-    void (*add_waiting_queue)(const struct IScheduler* self, ProcessControlBlock*, const int arrive_time);
+    void (*add_waiting_queue)(struct IScheduler* self, ProcessControlBlock*, const int arrive_time);
     void (*add_ready_queue)(const struct IScheduler* self, ProcessControlBlock*);
     void (*exit_process)(struct IScheduler* self);
     void (*dispatch)(struct IScheduler* self);
@@ -25,7 +36,7 @@ typedef struct IScheduler {
 }IScheduler;
 
 IScheduler* base_scheduler_constructor(IQueue* ready_queue, const int time_slice);
-void add_waiting_queue(const IScheduler* self, ProcessControlBlock* pcb, const int target_time);
+void add_waiting_queue(IScheduler* self, ProcessControlBlock* pcb, const int target_time);
 void add_ready_queue(const IScheduler* self, ProcessControlBlock*);
 void exit_process(IScheduler* self);
 void dispatch(IScheduler* self);

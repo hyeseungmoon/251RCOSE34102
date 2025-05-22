@@ -58,7 +58,7 @@ int main(void) {
         "p5"
     };
 
-    IScheduler* sjf_scheduler = sjf_preemptive_scheduler_constructor();
+    IScheduler* sjf_scheduler = priority_preemptive_scheduler_constructor();
     int priority[] = {4, 3, 2, 1, 4};
 
     for (int i=0;i<5;i++) {
@@ -66,16 +66,14 @@ int main(void) {
         Process *p = process_constructor(buffer);
         ProcessControlBlock *pcb = process_control_block_constructor(p);
         PCBWithPriority *priority_pcb = malloc(sizeof(PCBWithPriority));
-        priority_pcb->priority = get_cpu_burst_time(p);
+        priority_pcb->priority = priority[i];
         priority_pcb->pcb = *pcb;
 
         sjf_scheduler->add_waiting_queue(sjf_scheduler, (ProcessControlBlock*)priority_pcb, i);
         free(buffer);
     }
 
-    printf("********************** SJF SCHEDULING **********************\n");
     sjf_scheduler->start(sjf_scheduler);
-    printf("*************************************************************\n\n");
 
     return 0;
 }

@@ -9,10 +9,11 @@
 #include <Component/cpu.h>
 #include <stdio.h>
 
-#define DEBUG
+// #define DEBUG
 //#define TIMESLICE
 
 #define WAITING_QUEUE_CAPACITY 20
+
 
 extern unsigned int cur_time;
 unsigned int current_execution_time = 0;
@@ -34,9 +35,13 @@ IScheduler* base_scheduler_constructor(IQueue* ready_queue, const int time_slice
     IScheduler* scheduler = malloc(sizeof(IScheduler));
     scheduler->ready_queue = ready_queue;
     scheduler->waiting_queue = priority_queue_constructor(WAITING_QUEUE_CAPACITY, job_cmp);
+    scheduler->chart_queue = fifo_queue_constructor(100);
     scheduler->core = cpu_constructor();
     scheduler->current_pcb = NULL;
-    scheduler->time_slice = time_slice;
+    scheduler->time_quantum = time_slice;
+    scheduler->total_waiting_time = 0;
+    scheduler->total_turnaround_time = 0;
+    scheduler->total_prcess_count = 0;
 
     scheduler->add_waiting_queue = add_waiting_queue;
     scheduler->add_ready_queue = add_ready_queue;
@@ -47,15 +52,18 @@ IScheduler* base_scheduler_constructor(IQueue* ready_queue, const int time_slice
     return scheduler;
 }
 
-void add_waiting_queue(const IScheduler* self, ProcessControlBlock* pcb, const int target_time) {
+void add_waiting_queue(IScheduler* self, ProcessControlBlock* pcb, const int target_time) {
     IQueue* job_queue = self->waiting_queue;
     Job* job = malloc(sizeof(Job));
     job->target_time = target_time;
     job->pcb = pcb;
     pcb->program_counter = self->core->program_counter;
-    if(pcb->arrive_time == -1)
+    if(pcb->arrive_time == -1) {
         pcb->arrive_time = target_time;
+        self->total_prcess_count++;
+    }
     job_queue->enqueue(job_queue, job);
+
 }
 
 ProcessControlBlock* check_queue(const IQueue* queue) {
@@ -91,6 +99,9 @@ void exit_process(IScheduler* self) {
     pcb->turnaround_time = cur_time - pcb->arrive_time;
     self->current_pcb = NULL;
 
+    self->total_waiting_time += pcb->waiting_time;
+    self->total_turnaround_time += pcb->turnaround_time;
+
 #ifdef DEBUG
     printf("%d FINISHING PROCESS PID %d TT : %d WT : %d\n", cur_time, pcb->pid, pcb->turnaround_time, pcb->waiting_time);
 #endif
@@ -123,6 +134,8 @@ void dispatch(IScheduler* self) {
 #ifdef DEBUG
     printf("%d Dispatching from process pid_%d -> pid_%d\n", cur_time, pcb ? pcb->pid : -1, next_pcb->pid);
 #endif
+
+    printf("%d - pid:%d - ", cur_time, next_pcb->pid);
     return;
 }
 
@@ -171,7 +184,7 @@ void run_timestep(IScheduler* self) {
     }
 
     // timeslice expiration 처리
-    if (current_execution_time == self->time_slice) {
+    if (current_execution_time == self->time_quantum) {
         if (core->fetch_next_operation(core).type == RET) {
             core->execute_operation(core);
             exit_process(self);
@@ -196,4 +209,8 @@ void start(IScheduler* self) {
     while (!ready_queue->is_empty(ready_queue) || !job_queue->is_empty(job_queue) || self->current_pcb) {
         self->run_timestep(self);
     }
+    printf("%d\n", cur_time);
+    printf("average waiting time : %lf\n", (float)self->total_waiting_time/self->total_prcess_count);
+    printf("average turnaround time : %lf\n", (float)self->total_turnaround_time/self->total_prcess_count);
+
 }
