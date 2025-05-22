@@ -1,1 +1,0 @@
-add_library(queue fifo_queue.c priority_queue.c)

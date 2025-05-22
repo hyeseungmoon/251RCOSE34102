@@ -65,7 +65,7 @@ void* priority_queue_peek(void *_self) {
     return ret;
 }
 
-IQueue* priority_queue_create(int capacity, int (*cmp)(const void*, const void*)) {
+IQueue* priority_queue_constructor(int capacity, int (*cmp)(const void*, const void*)) {
     PriorityQueue* q = malloc(sizeof(PriorityQueue));
     q->items = malloc(sizeof(void*)*capacity + 1);
     q->size = 0;

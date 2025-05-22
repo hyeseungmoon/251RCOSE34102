@@ -18,6 +18,6 @@ void* priority_queue_dequeue(void *self);
 bool priority_queue_is_empty(void *self);
 bool priority_queue_is_full(void *self);
 void* priority_queue_peek(void *self);
-IQueue* priority_queue_create(int capacity, int (*cmp)(const void*, const void*));
+IQueue* priority_queue_constructor(int capacity, int (*cmp)(const void*, const void*));
 
 #endif //PRIORITY_QUEUE_H
