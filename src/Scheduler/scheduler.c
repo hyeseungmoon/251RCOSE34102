@@ -43,6 +43,11 @@ void preemptive_add_queue_wrapper(struct IScheduler* self, ProcessControlBlock* 
 
     PCBWithPriority* current_pcb = (PCBWithPriority*)self->current_pcb;
     if (current_pcb && current_pcb->priority > next_pcb->priority) {
+        Cpu *core = self->core;
+        if (core->fetch_next_operation(core).type == RET) {
+            core->execute_operation(core);
+            exit_process(self);
+        }
         self->dispatch(self);
     }
 }

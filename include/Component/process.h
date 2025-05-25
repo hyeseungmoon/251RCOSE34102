@@ -37,6 +37,6 @@ typedef struct ProcessControlBlock {
 
 Process* process_constructor(char *s);
 
-ProcessControlBlock* process_control_block_constructor(Process* process);
+ProcessControlBlock* process_control_block_constructor(Process* process, int pid);
 
 #endif //PROCESS_H

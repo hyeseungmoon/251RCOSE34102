@@ -51,9 +51,9 @@ Process* process_constructor(char *s) {
     return process;
 }
 
-ProcessControlBlock* process_control_block_constructor(Process* process) {
+ProcessControlBlock* process_control_block_constructor(Process* process, int pid) {
     ProcessControlBlock* pcb = malloc(sizeof(ProcessControlBlock));
-    pcb->pid = cur_pid++;
+    pcb->pid = pid;
     pcb->program_counter = 0;
     pcb->process_state = CREATE;
     pcb->process = process;

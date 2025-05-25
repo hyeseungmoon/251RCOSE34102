@@ -19,7 +19,10 @@ typedef struct ChartObject{
 typedef struct IScheduler {
     IQueue* ready_queue;
     IQueue* waiting_queue;
-    IQueue* chart_queue;
+
+    int pid_timestamp[2000];
+    int timestamp_cnt;
+
     Cpu* core;
     ProcessControlBlock* current_pcb;
     int time_quantum;

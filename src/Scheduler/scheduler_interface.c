@@ -10,12 +10,13 @@
 #include <stdio.h>
 
 // #define DEBUG
-//#define TIMESLICE
+// #define TIMESLICE
 
 #define WAITING_QUEUE_CAPACITY 20
 
 
 extern unsigned int cur_time;
+extern int cur_pid;
 unsigned int current_execution_time = 0;
 
 typedef struct Job {
@@ -35,7 +36,10 @@ IScheduler* base_scheduler_constructor(IQueue* ready_queue, const int time_slice
     IScheduler* scheduler = malloc(sizeof(IScheduler));
     scheduler->ready_queue = ready_queue;
     scheduler->waiting_queue = priority_queue_constructor(WAITING_QUEUE_CAPACITY, job_cmp);
-    scheduler->chart_queue = fifo_queue_constructor(100);
+
+    for (int i=0;i<2000;i++) scheduler->pid_timestamp[i] = -100;
+    scheduler->timestamp_cnt = 0;
+
     scheduler->core = cpu_constructor();
     scheduler->current_pcb = NULL;
     scheduler->time_quantum = time_slice;
@@ -135,7 +139,7 @@ void dispatch(IScheduler* self) {
     printf("%d Dispatching from process pid_%d -> pid_%d\n", cur_time, pcb ? pcb->pid : -1, next_pcb->pid);
 #endif
 
-    printf("%d - pid:%d - ", cur_time, next_pcb->pid);
+
     return;
 }
 
@@ -144,7 +148,7 @@ void execute_cpu(IScheduler* self) {
     // CPU 연산 수행
     core->execute_operation(core);
     if (core->state == COMPUTATION) {
-        cur_time++;
+        self->pid_timestamp[cur_time++] = self->current_pcb->pid;
         current_execution_time++;
         self->current_pcb->executed_time++;
     }
@@ -178,8 +182,8 @@ void run_timestep(IScheduler* self) {
 
     // Ready와 current_pcb도 없을 경우 해당 timeslice 는 아무것도 하지 않고 IDLE로 보내기
     if (current_pcb == NULL && ready_queue->is_empty(ready_queue)) {
-        cur_time++;
         current_execution_time++;
+        self->pid_timestamp[cur_time++] = -1;
         return;
     }
 
@@ -204,12 +208,44 @@ void start(IScheduler* self) {
     cur_time = 0;
     current_execution_time = 0;
 
+
     IQueue* ready_queue = self->ready_queue;
     IQueue* job_queue = self->waiting_queue;
     while (!ready_queue->is_empty(ready_queue) || !job_queue->is_empty(job_queue) || self->current_pcb) {
         self->run_timestep(self);
+        if (self->current_pcb == NULL) self->pid_timestamp[cur_time] = -1;
+        else self->pid_timestamp[cur_time] = self->current_pcb->pid;
+    }
+
+    for (int i=0;i<cur_time - 1;i++) {
+        char buf[16];
+        if (self->pid_timestamp[i] != self->pid_timestamp[i + 1]) {
+            if (self->pid_timestamp[i] == -1) {
+                sprintf(buf, "NULL");
+            }
+            else {
+                sprintf(buf, "pid%d", self->pid_timestamp[i]);
+            }
+            printf("|    %s    ", buf);
+        }
+    }
+    char buf[16];
+    if (self->pid_timestamp[cur_time - 1] == -1) {
+        sprintf(buf, "NULL");
+    }
+    else {
+        sprintf(buf, "pid%d", self->pid_timestamp[cur_time - 1]);
+    }
+    printf("|    %s    ", buf);
+    printf("|\n");
+
+    for (int i=0;i<cur_time;i++) {
+        if (self->pid_timestamp[i] != self->pid_timestamp[i + 1]) {
+            printf("%d           ", i);
+        }
     }
     printf("%d\n", cur_time);
+
     printf("average waiting time : %lf\n", (float)self->total_waiting_time/self->total_prcess_count);
     printf("average turnaround time : %lf\n", (float)self->total_turnaround_time/self->total_prcess_count);
 

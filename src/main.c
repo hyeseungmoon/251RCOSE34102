@@ -49,31 +49,84 @@ char* read_program(const char* file_name) {
     return buffer;
 }
 
+PCBWithPriority* priority_pcb_constructor(ProcessControlBlock* pcb, int priority) {
+    PCBWithPriority* o = malloc(sizeof(PCBWithPriority));
+    o->pcb = *pcb;
+    o->priority = priority;
+
+    return o;
+}
+
 int main(void) {
-    char file_names[][128] = {
-        "p1",
-        "p2",
-        "p3",
-        "p4",
-        "p5"
-    };
+    int program_count = 0;
+    printf("input program count : ");
+    scanf("%d", &program_count);
+    char file_names[256][128];
+    int arrive_time[256];
+    int priority[256];
 
-    IScheduler* sjf_scheduler = priority_preemptive_scheduler_constructor();
-    int priority[] = {4, 3, 2, 1, 4};
+    for (int i=0;i<program_count;i++) {
+        char name[64];
+        printf("input arrive_time priority program_name eg. 0 p1\n");
+        scanf("%d %d %s", &arrive_time[i], &priority[i], file_names[i]);
+    }
 
-    for (int i=0;i<5;i++) {
+    IScheduler* fcfs_scheduler = fcfs_scheduler_constructor();
+    IScheduler* non_preemptive_sjf = sjf_non_preemptive_scheduler_constructor();
+    IScheduler* preemptive_sjf = sjf_preemptive_scheduler_constructor();
+    IScheduler* non_preemptive_priority = priority_non_preemptive_scheduler_constructor();
+    IScheduler* preemptive_priority = priority_preemptive_scheduler_constructor();
+    IScheduler* round_robin = round_robin_scheduler_constructor(2);
+
+    printf("Preemptive Priority\n");
+
+    for (int i=0;i<program_count;i++) {
         char* buffer = read_program(file_names[i]);
         Process *p = process_constructor(buffer);
-        ProcessControlBlock *pcb = process_control_block_constructor(p);
-        PCBWithPriority *priority_pcb = malloc(sizeof(PCBWithPriority));
-        priority_pcb->priority = priority[i];
-        priority_pcb->pcb = *pcb;
 
-        sjf_scheduler->add_waiting_queue(sjf_scheduler, (ProcessControlBlock*)priority_pcb, i);
+        ProcessControlBlock *pcb_fcfs = process_control_block_constructor(p, i);
+        ProcessControlBlock *_pcb_p_sjf = process_control_block_constructor(p, i);
+        ProcessControlBlock *_pcb_sjf = process_control_block_constructor(p, i);
+        ProcessControlBlock *_pcb_non_p_priority = process_control_block_constructor(p, i);
+        ProcessControlBlock *_pcb_p_priority = process_control_block_constructor(p, i);
+        ProcessControlBlock *pcb_rr = process_control_block_constructor(p, i);
+
+        PCBWithPriority *pcb_p_sjf = priority_pcb_constructor(_pcb_p_sjf, get_cpu_burst_time(p));
+        PCBWithPriority *pcb_sjf = priority_pcb_constructor(_pcb_sjf, get_cpu_burst_time(p));
+        PCBWithPriority *pcb_non_p_priority = priority_pcb_constructor(_pcb_non_p_priority, priority[i]);
+        PCBWithPriority *pcb_p_priority = priority_pcb_constructor(_pcb_p_priority, priority[i]);
+
+        fcfs_scheduler->add_waiting_queue(fcfs_scheduler, pcb_fcfs, arrive_time[i]);
+        non_preemptive_sjf->add_waiting_queue(non_preemptive_sjf, pcb_sjf, arrive_time[i]);
+        preemptive_sjf->add_waiting_queue(preemptive_sjf, pcb_p_sjf, arrive_time[i]);
+        non_preemptive_priority->add_waiting_queue(non_preemptive_priority, pcb_non_p_priority, arrive_time[i]);
+        preemptive_priority->add_waiting_queue(preemptive_priority, pcb_p_priority, arrive_time[i]);
+        round_robin->add_waiting_queue(round_robin, pcb_rr, arrive_time[i]);
         free(buffer);
     }
 
-    sjf_scheduler->start(sjf_scheduler);
+    printf("** FCFS Scheduler **\n");
+    fcfs_scheduler->start(fcfs_scheduler);
+    printf("\n\n\n");
+
+    printf("** Non-Preemptive SJF Scheduler **\n");
+    non_preemptive_sjf->start(non_preemptive_sjf);
+    printf("\n\n\n");
+
+    printf("** Preemptive SJF Scheduler **\n");
+    preemptive_sjf->start(preemptive_sjf);
+    printf("\n\n\n");
+
+    printf("** Non-Preemptive Priority Scheduler **\n");
+    non_preemptive_priority->start(non_preemptive_priority);
+    printf("\n\n\n");
+
+    printf("** Preemptive Priority Scheduler **\n");
+    preemptive_priority->start(preemptive_priority);
+    printf("\n\n\n");
+
+    printf("** Round Robin Scheduler **\n");
+    round_robin->start(round_robin);
 
     return 0;
 }
