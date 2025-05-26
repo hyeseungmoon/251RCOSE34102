@@ -28,7 +28,7 @@ typedef struct IScheduler {
     int time_quantum;
     int total_waiting_time;
     int total_turnaround_time;
-    int total_prcess_count;
+    int total_process_count;
 
     void (*add_waiting_queue)(struct IScheduler* self, ProcessControlBlock*, const int arrive_time);
     void (*add_ready_queue)(const struct IScheduler* self, ProcessControlBlock*);

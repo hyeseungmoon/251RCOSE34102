@@ -1,6 +1,6 @@
 add_executable(COSE341 main.c)
 
-add_library(queue DataStructure/priority_queue.c DataStructure/fifo_queue.c)
+add_library(queue DataStructure/priority_queue.c DataStructure/fifo_queue.c DataStructure/lottery_queue.c)
 add_library(component Component/cpu.c Component/process.c)
 add_library(scheduler Scheduler/scheduler_interface.c Scheduler/scheduler.c)
 

@@ -19,5 +19,7 @@ IScheduler* priority_non_preemptive_scheduler_constructor();
 IScheduler* priority_preemptive_scheduler_constructor();
 IScheduler* round_robin_scheduler_constructor(int time_quantum);
 IScheduler* starvation_priority_preemptive_scheduler_constructor();
+IScheduler* lottery_scheduler_constructor();
+
 
 #endif //FCFS_SCHEDULER_H

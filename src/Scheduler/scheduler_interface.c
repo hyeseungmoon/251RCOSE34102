@@ -9,7 +9,7 @@
 #include <Component/cpu.h>
 #include <stdio.h>
 
- #define DEBUG
+ // #define DEBUG
 // #define TIMESLICE
 
 #define WAITING_QUEUE_CAPACITY 20
@@ -44,7 +44,7 @@ IScheduler* base_scheduler_constructor(IQueue* ready_queue, const int time_slice
     scheduler->time_quantum = time_slice;
     scheduler->total_waiting_time = 0;
     scheduler->total_turnaround_time = 0;
-    scheduler->total_prcess_count = 0;
+    scheduler->total_process_count = 0;
 
     scheduler->add_waiting_queue = add_waiting_queue;
     scheduler->add_ready_queue = add_ready_queue;
@@ -63,7 +63,7 @@ void add_waiting_queue(IScheduler* self, ProcessControlBlock* pcb, const int tar
     pcb->program_counter = self->core->program_counter;
     if(pcb->arrive_time == -1) {
         pcb->arrive_time = target_time;
-        self->total_prcess_count++;
+        self->total_process_count++;
     }
     job_queue->enqueue(job_queue, job);
 
@@ -108,6 +108,14 @@ void exit_process(IScheduler* self) {
 #ifdef DEBUG
     printf("%d FINISHING PROCESS PID %d TT : %d WT : %d\n", cur_time, pcb->pid, pcb->turnaround_time, pcb->waiting_time);
 #endif
+    char buff1[32], buff2[32], buff3[32], buff4[32], buff5[32];
+    sprintf(buff1, "pid%d", pcb->pid);
+    sprintf(buff2, "%d", pcb->waiting_time);
+    sprintf(buff3, "%d", pcb->turnaround_time);
+    sprintf(buff4, "%d", pcb->arrive_time);
+
+    printf("| %-20s | %-20s | %-20s | %-20s |\n", buff1, buff2, buff3, buff4);
+    printf("%s", "----------------------  ----------------------  ---------------------  ---------------------\n");
 }
 
 void dispatch(IScheduler* self) {
@@ -207,6 +215,11 @@ void run_timestep(IScheduler* self) {
 }
 
 void start(IScheduler* self) {
+    printf("Result Table\n");
+    printf("%s", "----------------------  ----------------------  ---------------------  ---------------------\n");
+    printf("| %-20s | %-20s | %-20s | %-20s |\n", "pid", "waiting time", "turnaround time", "arrive time");
+    printf("%s", "----------------------  ----------------------  ---------------------  ---------------------\n");
+
     cur_time = 0;
     current_execution_time = 0;
 
@@ -232,10 +245,14 @@ void start(IScheduler* self) {
         i++;
     }
 
+    printf("average waiting time : %lf\n", (float)self->total_waiting_time/self->total_process_count);
+    printf("average turnaround time : %lf\n", (float)self->total_turnaround_time/self->total_process_count);
+    printf("\n");
+    printf("Gahnt Chart\n");
     for (int i=0;i<cnt;i++) {
         char buf[16];
         if (self->pid_timestamp[start_time[i]] == -1) {
-            sprintf(buf, "NULL");
+            sprintf(buf, "IDLE");
         }
         else {
             sprintf(buf, "pid%d", self->pid_timestamp[start_time[i]]);
@@ -250,8 +267,5 @@ void start(IScheduler* self) {
         printf("%-13s",  buff);
     }
     printf("%d\n", cur_time);
-
-    printf("average waiting time : %lf\n", (float)self->total_waiting_time/self->total_prcess_count);
-    printf("average turnaround time : %lf\n", (float)self->total_turnaround_time/self->total_prcess_count);
 
 }

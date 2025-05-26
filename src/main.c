@@ -81,6 +81,7 @@ int main(void) {
     IScheduler* preemptive_priority = priority_preemptive_scheduler_constructor();
     IScheduler* round_robin = round_robin_scheduler_constructor(time_quantum);
     IScheduler* starvation = starvation_priority_preemptive_scheduler_constructor();
+    IScheduler* lottery = lottery_scheduler_constructor();
 
     for (int i=0;i<program_count;i++) {
         char* buffer = read_program(file_names[i]);
@@ -93,6 +94,7 @@ int main(void) {
         ProcessControlBlock *_pcb_p_priority = process_control_block_constructor(p, i);
         ProcessControlBlock *pcb_rr = process_control_block_constructor(p, i);
         ProcessControlBlock *_pcb_starvation = process_control_block_constructor(p, i);
+        ProcessControlBlock *_pcb_lottery = process_control_block_constructor(p, i);
 
 
         PCBWithPriority *pcb_p_sjf = priority_pcb_constructor(_pcb_p_sjf, get_cpu_burst_time(p));
@@ -100,6 +102,7 @@ int main(void) {
         PCBWithPriority *pcb_non_p_priority = priority_pcb_constructor(_pcb_non_p_priority, priority[i]);
         PCBWithPriority *pcb_p_priority = priority_pcb_constructor(_pcb_p_priority, priority[i]);
         PCBWithPriority *pcb_starvation = priority_pcb_constructor(_pcb_starvation, get_cpu_burst_time(p));
+        PCBWithPriority *pcb_lottery = priority_pcb_constructor(_pcb_lottery, priority[i]);
 
         fcfs_scheduler->add_waiting_queue(fcfs_scheduler, pcb_fcfs, arrive_time[i]);
         non_preemptive_sjf->add_waiting_queue(non_preemptive_sjf, pcb_sjf, arrive_time[i]);
@@ -108,6 +111,7 @@ int main(void) {
         preemptive_priority->add_waiting_queue(preemptive_priority, pcb_p_priority, arrive_time[i]);
         round_robin->add_waiting_queue(round_robin, pcb_rr, arrive_time[i]);
         starvation->add_waiting_queue(starvation, pcb_starvation, arrive_time[i]);
+        lottery->add_waiting_queue(lottery, pcb_lottery, arrive_time[i]);
         free(buffer);
     }
 
@@ -137,6 +141,10 @@ int main(void) {
 
     printf("** Starvation SJF Scheduler **\n");
     starvation->start(starvation);
+    printf("\n\n\n");
+
+    printf("** Lottery Scheduler **\n");
+    lottery->start(lottery);
 
     return 0;
 }

@@ -5,6 +5,7 @@
 #include <Scheduler/scheduler_interface.h>
 #include <Scheduler/scheduler.h>
 #include <DataStructure/fifo_queue.h>
+#include <DataStructure/lottery_queue.h>
 #include <DataStructure/priority_queue.h>
 
 extern unsigned int cur_time;
@@ -107,5 +108,12 @@ void starvation_run_timestep(IScheduler* self) {
 IScheduler* starvation_priority_preemptive_scheduler_constructor() {
     IScheduler* scheduler = priority_preemptive_scheduler_constructor();
     scheduler->run_timestep =  starvation_run_timestep;
+    return scheduler;
+}
+
+IScheduler* lottery_scheduler_constructor() {
+    IScheduler* scheduler = priority_non_preemptive_scheduler_constructor();
+    free(scheduler->ready_queue);
+    scheduler->ready_queue = lottery_queue_constructor();
     return scheduler;
 }
