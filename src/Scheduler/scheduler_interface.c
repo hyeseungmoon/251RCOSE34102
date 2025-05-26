@@ -9,14 +9,13 @@
 #include <Component/cpu.h>
 #include <stdio.h>
 
-// #define DEBUG
+ #define DEBUG
 // #define TIMESLICE
 
 #define WAITING_QUEUE_CAPACITY 20
 
 
 extern unsigned int cur_time;
-extern int cur_pid;
 unsigned int current_execution_time = 0;
 
 typedef struct Job {
@@ -154,6 +153,9 @@ void execute_cpu(IScheduler* self) {
     }
     else if (core->state == IO) {
         self->add_waiting_queue(self, self->current_pcb, core->end_time);
+#ifdef DEBUG
+        printf("%d Dispatching from process pid_%d -> pid_%d\n", cur_time, self->current_pcb ? self->current_pcb->pid : -1, -1);
+#endif
         self->current_pcb = NULL;
         self->core->state = IDLE;
     }
@@ -217,32 +219,35 @@ void start(IScheduler* self) {
         else self->pid_timestamp[cur_time] = self->current_pcb->pid;
     }
 
-    for (int i=0;i<cur_time - 1;i++) {
-        char buf[16];
-        if (self->pid_timestamp[i] != self->pid_timestamp[i + 1]) {
-            if (self->pid_timestamp[i] == -1) {
-                sprintf(buf, "NULL");
-            }
-            else {
-                sprintf(buf, "pid%d", self->pid_timestamp[i]);
-            }
-            printf("|    %s    ", buf);
+
+    int start_time[2000];
+    int i=0;
+    int cnt = 0;
+    int pivot = -2;
+    while(i < cur_time) {
+        if(pivot != self->pid_timestamp[i]) {
+            start_time[cnt++] = i;
+            pivot = self->pid_timestamp[i];
         }
+        i++;
     }
-    char buf[16];
-    if (self->pid_timestamp[cur_time - 1] == -1) {
-        sprintf(buf, "NULL");
+
+    for (int i=0;i<cnt;i++) {
+        char buf[16];
+        if (self->pid_timestamp[start_time[i]] == -1) {
+            sprintf(buf, "NULL");
+        }
+        else {
+            sprintf(buf, "pid%d", self->pid_timestamp[start_time[i]]);
+        }
+        printf("|    %s    ", buf);
     }
-    else {
-        sprintf(buf, "pid%d", self->pid_timestamp[cur_time - 1]);
-    }
-    printf("|    %s    ", buf);
     printf("|\n");
 
-    for (int i=0;i<cur_time;i++) {
-        if (self->pid_timestamp[i] != self->pid_timestamp[i + 1]) {
-            printf("%d           ", i);
-        }
+    char buff[16];
+    for (int i=0;i<cnt;i++) {
+        sprintf(buff, "%d", start_time[i]);
+        printf("%-13s",  buff);
     }
     printf("%d\n", cur_time);
 

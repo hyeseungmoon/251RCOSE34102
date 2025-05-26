@@ -54,7 +54,8 @@ void preemptive_add_queue_wrapper(struct IScheduler* self, ProcessControlBlock* 
 
 IScheduler* priority_preemptive_scheduler_constructor() {
     IScheduler* scheduler = priority_non_preemptive_scheduler_constructor();
-    scheduler->add_ready_queue = preemptive_add_queue_wrapper;
+    scheduler->add_ready_queue = (void (*)(const struct IScheduler *,
+                                           ProcessControlBlock *)) preemptive_add_queue_wrapper;
     return scheduler;
 }
 
@@ -67,14 +68,44 @@ void preemptive_sjf_add_queue_wrapper(struct IScheduler* self, ProcessControlBlo
     if (current_pcb && current_pcb->priority > next_pcb->priority) {
         current_pcb->priority -= current_pcb->pcb.executed_time;
         current_pcb->pcb.executed_time = 0;
+        Cpu *core = self->core;
+        if (core->fetch_next_operation(core).type == RET) {
+            core->execute_operation(core);
+            exit_process(self);
+        }
         self->dispatch(self);
     }
 }
 
 IScheduler* sjf_preemptive_scheduler_constructor() {
     IScheduler* scheduler = priority_preemptive_scheduler_constructor();
-    scheduler->add_ready_queue = preemptive_sjf_add_queue_wrapper;
+    scheduler->add_ready_queue = (void (*)(const struct IScheduler *,
+                                           ProcessControlBlock *)) preemptive_sjf_add_queue_wrapper;
     return scheduler;
 }
 
+void starvation_run_timestep(IScheduler* self) {
+    PriorityQueue *priority_queue = (PriorityQueue*)self->ready_queue;
+    if(!priority_queue->interface.is_empty(priority_queue) && self->current_pcb) {
+        PCBWithPriority *next_pcb = priority_queue->interface.peek(priority_queue);
+        PCBWithPriority *current_pcb = self->current_pcb;
 
+        if(current_pcb->priority > next_pcb->priority) {
+            self->dispatch(self);
+        }
+    }
+
+    run_timestep(self);
+
+    for(int i=0;i<priority_queue->size;i++) {
+        PCBWithPriority *pcb = (PCBWithPriority*)priority_queue->items[i + 1];
+        pcb->priority -= 1;
+    }
+    priority_queue->priority_queue_rebalance(priority_queue);
+}
+
+IScheduler* starvation_priority_preemptive_scheduler_constructor() {
+    IScheduler* scheduler = priority_preemptive_scheduler_constructor();
+    scheduler->run_timestep =  starvation_run_timestep;
+    return scheduler;
+}

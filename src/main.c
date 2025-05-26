@@ -1,9 +1,7 @@
-#include <math.h>
 #include <process.h>
 #include <stdio.h>
 #include <Scheduler/scheduler.h>
 
-int cur_pid = 1;
 unsigned int cur_time = 0;
 
 int get_cpu_burst_time(const Process* process) {
@@ -58,12 +56,17 @@ PCBWithPriority* priority_pcb_constructor(ProcessControlBlock* pcb, int priority
 }
 
 int main(void) {
+    int time_quantum;
+    printf("input time_quantum : ");
+    scanf("%d", &time_quantum);
+
     int program_count = 0;
     printf("input program count : ");
     scanf("%d", &program_count);
     char file_names[256][128];
     int arrive_time[256];
     int priority[256];
+
 
     for (int i=0;i<program_count;i++) {
         char name[64];
@@ -76,9 +79,8 @@ int main(void) {
     IScheduler* preemptive_sjf = sjf_preemptive_scheduler_constructor();
     IScheduler* non_preemptive_priority = priority_non_preemptive_scheduler_constructor();
     IScheduler* preemptive_priority = priority_preemptive_scheduler_constructor();
-    IScheduler* round_robin = round_robin_scheduler_constructor(2);
-
-    printf("Preemptive Priority\n");
+    IScheduler* round_robin = round_robin_scheduler_constructor(time_quantum);
+    IScheduler* starvation = starvation_priority_preemptive_scheduler_constructor();
 
     for (int i=0;i<program_count;i++) {
         char* buffer = read_program(file_names[i]);
@@ -90,11 +92,14 @@ int main(void) {
         ProcessControlBlock *_pcb_non_p_priority = process_control_block_constructor(p, i);
         ProcessControlBlock *_pcb_p_priority = process_control_block_constructor(p, i);
         ProcessControlBlock *pcb_rr = process_control_block_constructor(p, i);
+        ProcessControlBlock *_pcb_starvation = process_control_block_constructor(p, i);
+
 
         PCBWithPriority *pcb_p_sjf = priority_pcb_constructor(_pcb_p_sjf, get_cpu_burst_time(p));
         PCBWithPriority *pcb_sjf = priority_pcb_constructor(_pcb_sjf, get_cpu_burst_time(p));
         PCBWithPriority *pcb_non_p_priority = priority_pcb_constructor(_pcb_non_p_priority, priority[i]);
         PCBWithPriority *pcb_p_priority = priority_pcb_constructor(_pcb_p_priority, priority[i]);
+        PCBWithPriority *pcb_starvation = priority_pcb_constructor(_pcb_starvation, get_cpu_burst_time(p));
 
         fcfs_scheduler->add_waiting_queue(fcfs_scheduler, pcb_fcfs, arrive_time[i]);
         non_preemptive_sjf->add_waiting_queue(non_preemptive_sjf, pcb_sjf, arrive_time[i]);
@@ -102,6 +107,7 @@ int main(void) {
         non_preemptive_priority->add_waiting_queue(non_preemptive_priority, pcb_non_p_priority, arrive_time[i]);
         preemptive_priority->add_waiting_queue(preemptive_priority, pcb_p_priority, arrive_time[i]);
         round_robin->add_waiting_queue(round_robin, pcb_rr, arrive_time[i]);
+        starvation->add_waiting_queue(starvation, pcb_starvation, arrive_time[i]);
         free(buffer);
     }
 
@@ -127,6 +133,10 @@ int main(void) {
 
     printf("** Round Robin Scheduler **\n");
     round_robin->start(round_robin);
+    printf("\n\n\n");
+
+    printf("** Starvation SJF Scheduler **\n");
+    starvation->start(starvation);
 
     return 0;
 }
